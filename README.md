@@ -1,2 +1,7 @@
-# iot-edge-image-cleanup
-Module for cleaning up unused docker images in iot edge
+# IoT Edge image clean up module
+
+Example module for automatically cleaning up unused Docker images from your IoT Edge boxes
+
+this is a work in progress :-)
+
+
