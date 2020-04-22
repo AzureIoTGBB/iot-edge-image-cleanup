@@ -12,12 +12,6 @@ This repo and module attempts to provide one example of how you might do that.
 
 ** NOTE:  at this time, this module supports IoT Edge running on Linux only. Additionally, we've only tested on Ubuntu. **
 
-##  A word of warning
-
-Before we jump in, a small word of warning.  For this module to work, you have to bind or map the /var/lib/docker.sock unix domain socket from the IoT Edge host into the edge module container.  This is the unix domain socket upon which the docker runtime listens for commands (i.e. you type 'docker image purge' from the docker CLI, under the covers it's talking to the docker daemon on this socket).
-
-By mapping his docker daemon socket into the container, you are giving the module free reign on your docker installation, to do whatever it wants.  So code within the module can do pretty much anything you can do with the docker cli, including deleting containers, images, etc. Only you can determine the risk level in doing that for your particular installation.
-
 ##  How does it work?
 
 The bulk of the work is done in the [run.sh](module/run.sh) script in the modules folder.  This bash script checks some optional input environment variables and then sets up an infinite loop where it purges unused images and then sleeps for some configurable amount of time...
@@ -92,11 +86,29 @@ docker images
 
 to see them.  Then, the next time the module wakes up to prune, return the 'docker images' and watch the images disappear.
 
+
+##  A few words of warning
+
+Before we leave you, a few words of warning.  
+
+#### Powerful access
+For this module to work, you have to bind or map the /var/lib/docker.sock unix domain socket from the IoT Edge host into the edge module container.  This is the unix domain socket upon which the docker runtime listens for commands (i.e. you type 'docker image purge' from the docker CLI, under the covers it's talking to the docker daemon on this socket).
+
+By mapping his docker daemon socket into the container, you are giving the module free reign on your docker installation, to do whatever it wants.  So code within the module can do pretty much anything you can do with the docker cli, including deleting containers, images, etc. Only you can determine the risk level in doing that for your particular installation.
+
+#### It's like a tactical nuke
+This module prunes ALL unused images on your box, not just the ones that might have been pull by IoT Edge.  So, *if* you use your IoT Edge machine for other docker things, and there are docker images laying around unused related to other projects, the module will nuke them too.  Docker can obviously re-pull the images when it needs them for containers, but just be aware of this on slower networks.
+
+#### Possible race conditions
+We haven't tested all the potential race conditions that might be involved. For example, one potential one might be that you are stopping IoT Edge (via 'sudo systemctl stop iotedge'), which prompts the iotedge daemon to stop all the modules and delete the containers.  We aren't sure the order in which this happens is deterministic.  So, *if* say edgeHub gets stopped and the container gets removed and *if* this module is still running and hits a 'prune' cycle in that exact moment before it's shut down itself, it could nuke the edgeHub image.  Highly unlikely timing, but somewhere in the infinite universe this might happen. Another potential race condition could be that this module gets started first before the others, and nukes some of the images that Edge is using to start the other containers.  Again, IoT Edge would just re-pull the images it needs, but just be aware of this on potentially slow or unreliable networks.
+
+
 ## Future enhancements
 
 This was primarily done as a proof-of-concept to see if the unused docker images could be purged from within IoT Edge itself.  So a bash shell was purposely used to minimize language dependencies, etc.  
 
 A few future enhancements we are thinking about:
+* add a delay to start-up to address one of the possible race conditions mentioned previously
 * having the module post the 'results' of each purge to edgeHub (and thus you can route to IoT Hub) to report up to the cloud when it purges
 * having the module post to Azure Log Analtics for operational reporting
 * Re-writing in a 'better' language than bash (mayby python, for example) to make it easier to do the first two bullets :-)
