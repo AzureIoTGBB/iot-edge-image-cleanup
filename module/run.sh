@@ -24,6 +24,13 @@ do
    echo 'removing unused docker images at ' $(date)
    # here's the magic..  Call the /images/prune API, with dangling=false to prune all unused images (not just <none>:<none> ones)
    curl -X POST -s --unix-socket /var/run/docker.sock http://localhost/images/prune?filters=%7B%22dangling%22%3A%20%5B%22false%22%5D%7D
+   echo 'removing stopped containers at ' $(date)
+   curl -X POST -s --unix-socket /var/run/docker.sock http://localhost/containers/prune?filters=%7B%7D
+   echo 'removing unused networks at ' $(date)
+   curl -X POST -s --unix-socket /var/run/docker.sock http://localhost/networks/prune?filters=%7B%7D
+   echo 'removing unused volumes at ' $(date)
+   curl -X POST -s --unix-socket /var/run/docker.sock http://localhost/volumes/prune?filters=%7B%7D
+
    echo 'sleeping for ' $SleepTime $SleepUnit
    # sun's getting real low, big guy...  go to sleep
    sleep ${SleepTime}${SleepUnit}

@@ -1,8 +1,8 @@
-FROM ubuntu
+FROM alpine
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y curl
+RUN apk add --no-cache curl
 
 COPY run.sh .
 
